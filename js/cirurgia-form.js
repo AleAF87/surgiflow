@@ -3,11 +3,12 @@ import { get, ref, set, update } from "https://www.gstatic.com/firebasejs/9.23.0
 import { gerarIdCirurgia, gerarId } from "./utils/id-generator.js";
 import { registrarLog, obterCamposAlterados } from "./services/logs-service.js";
 import { criarIndicesConsultaCirurgia, atualizarIndiceMedicoConsulta, atualizarIndicePacienteConsulta } from "./services/indexes-service.js";
-import { adicionarAnexoCirurgia, adicionarAnexoGastoCirurgico } from "./services/anexos-service.js";
+import { adicionarAnexoCirurgia, adicionarAnexoGastoCirurgico, excluirAnexoCirurgia, excluirAnexoGastoCirurgico } from "./services/anexos-service.js";
 
 let materiaisAdicionados = [];
 let gastosCirurgicos = [];
 let movimentacoes = [];
+let anexosPendentesExclusao = [];
 let selects = {};
 
 const QUICK_CREATE_CONFIG = {
@@ -88,9 +89,10 @@ const QUICK_CREATE_CONFIG = {
   }
 };
 
-export async function initPage({ usuario }) {
+export async function initPage({ usuario, app }) {
   const form = document.getElementById("cirurgiaForm");
   selects = await carregarSelects();
+  await garantirMedicoDoUsuario(usuario);
   aplicarMedicoDoUsuario(usuario);
   await carregarCirurgiaEmEdicao(usuario);
   renderMateriais();
@@ -110,24 +112,72 @@ export async function initPage({ usuario }) {
     materiaisAdicionados.splice(Number(button.dataset.removeMaterial), 1);
     renderMateriais();
   });
-  document.getElementById("addGasto").addEventListener("click", () => {
-    sincronizarGastosDoDom();
-    gastosCirurgicos.push({ id: gerarId("g"), descricao: "", valor: "", anexos: {} });
-    renderGastos();
-  });
-  document.getElementById("gastosTable").addEventListener("input", () => {
-    sincronizarGastosDoDom();
-    atualizarTotalGastos();
-  });
+  document.getElementById("addGasto").addEventListener("click", adicionarGastoSelecionado);
   document.getElementById("gastosTable").addEventListener("click", (event) => {
     const button = event.target.closest("[data-remove-gasto]");
+    const anexoButton = event.target.closest("[data-remove-gasto-anexo]");
+    if (anexoButton) {
+      marcarAnexoGastoParaExclusao(Number(anexoButton.dataset.gastoIndex), anexoButton.dataset.removeGastoAnexo);
+      return;
+    }
     if (!button) return;
-    sincronizarGastosDoDom();
-    gastosCirurgicos.splice(Number(button.dataset.removeGasto), 1);
+    removerGasto(Number(button.dataset.removeGasto));
     renderGastos();
   });
+  document.getElementById("movimentacoesTable").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-remove-movimentacao-anexo]");
+    if (!button) return;
+    marcarAnexoMovimentacaoParaExclusao(button.dataset.removeMovimentacaoAnexo);
+  });
   document.getElementById("addMovimentacao").addEventListener("click", async () => adicionarMovimentacao(usuario));
-  form.addEventListener("submit", (event) => salvarCirurgia(event, usuario));
+  form.addEventListener("submit", (event) => salvarCirurgia(event, usuario, app));
+}
+
+async function garantirMedicoDoUsuario(usuario) {
+  if (Number(usuario?.nivelAcesso) !== 3) return;
+  if (usuario.medicoId && selects.medicos?.[usuario.medicoId]) return;
+
+  const medicoExistente = Object.values(selects.medicos || {}).find((medico) => {
+    const mesmoEmail = usuario.email && medico.email && String(medico.email).toLowerCase() === String(usuario.email).toLowerCase();
+    const mesmoCrm = usuario.crm && medico.crm && normalizarTexto(medico.crm) === normalizarTexto(usuario.crm);
+    return mesmoEmail || mesmoCrm;
+  });
+
+  if (medicoExistente?.id) {
+    usuario.medicoId = medicoExistente.id;
+    await update(ref(db), {
+      [`usuarios/${usuario.id}/medicoId`]: medicoExistente.id,
+      [`login/${usuario.id}/medicoId`]: medicoExistente.id
+    });
+    return;
+  }
+
+  const medicoId = gerarId("m");
+  const now = new Date().toISOString();
+  const medico = {
+    id: medicoId,
+    nome: usuario.nome || "Médico",
+    crm: usuario.crm || "",
+    especialidade: usuario.especialidade || usuario.setor || "",
+    telefone: usuario.telefone || "",
+    email: usuario.email || "",
+    criadoEm: now,
+    criadoPor: usuario.id,
+    criadoPorNome: usuario.nome || "Usuário",
+    atualizadoEm: now,
+    atualizadoPor: usuario.id,
+    atualizadoPorNome: usuario.nome || "Usuário",
+    origem: "usuario_medico"
+  };
+
+  await update(ref(db), {
+    [`medicos/${medicoId}`]: medico,
+    [`usuarios/${usuario.id}/medicoId`]: medicoId,
+    [`login/${usuario.id}/medicoId`]: medicoId
+  });
+  selects.medicos = { ...(selects.medicos || {}), [medicoId]: medico };
+  preencherSelect("medicoId", selects.medicos);
+  usuario.medicoId = medicoId;
 }
 
 function aplicarMedicoDoUsuario(usuario) {
@@ -151,6 +201,7 @@ async function carregarCirurgiaEmEdicao(usuario) {
   if (!snapshot.exists()) return;
   const cirurgia = snapshot.val();
   preencherFormularioCirurgia(cirurgia, usuario);
+  anexosPendentesExclusao = [];
 }
 
 function preencherFormularioCirurgia(cirurgia, usuario) {
@@ -189,6 +240,10 @@ function preencherSelect(nameOrId, dados) {
   select.innerHTML = `<option value="">Selecione</option>${Object.values(dados).map((item) => `<option value="${item.id}">${item.nome || item.id}</option>`).join("")}`;
 }
 
+function normalizarTexto(value = "") {
+  return String(value).trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function configurarCadastroRapido(usuario) {
   document.querySelectorAll(".quick-create-btn").forEach((button) => {
     button.addEventListener("click", () => abrirModalCadastroRapido(button.dataset.entity));
@@ -214,7 +269,6 @@ function abrirModalCadastroRapido(entity) {
 async function salvarCadastroRapido(event, usuario) {
   event.preventDefault();
   const form = event.currentTarget;
-  sincronizarGastosDoDom();
   const estadoFormulario = capturarEstadoFormularioCirurgia();
   const entity = form.entity.value;
   const config = QUICK_CREATE_CONFIG[entity];
@@ -260,7 +314,7 @@ function capturarEstadoFormularioCirurgia() {
   return {
     id: form.elements.id.value,
     pacienteId: form.pacienteId.value,
-    medicoId: form.medicoId.value || usuario.medicoId || usuario.id,
+    medicoId: form.medicoId.value,
     hospitalId: form.hospitalId.value,
     convenioId: form.convenioId.value,
     tipoProcedimentoId: form.tipoProcedimentoId.value,
@@ -272,6 +326,8 @@ function capturarEstadoFormularioCirurgia() {
     materialSelect: document.getElementById("materialSelect").value,
     materialQuantidade: document.getElementById("materialQuantidade").value,
     materialObservacao: document.getElementById("materialObservacao").value,
+    gastoDescricao: document.getElementById("gastoDescricao").value,
+    gastoValor: document.getElementById("gastoValor").value,
     movimentacaoComentario: document.getElementById("movimentacaoComentario").value,
     movimentacaoDataDocumento: document.getElementById("movimentacaoDataDocumento").value
   };
@@ -293,6 +349,8 @@ function restaurarEstadoFormularioCirurgia(estado) {
   document.getElementById("materialSelect").value = estado.materialSelect || "";
   document.getElementById("materialQuantidade").value = estado.materialQuantidade || "1";
   document.getElementById("materialObservacao").value = estado.materialObservacao || "";
+  document.getElementById("gastoDescricao").value = estado.gastoDescricao || "";
+  document.getElementById("gastoValor").value = estado.gastoValor || "";
   document.getElementById("movimentacaoComentario").value = estado.movimentacaoComentario || "";
   document.getElementById("movimentacaoDataDocumento").value = estado.movimentacaoDataDocumento || "";
   renderGastos();
@@ -340,26 +398,62 @@ function renderGastos() {
     <thead><tr><th>Descrição</th><th style="width: 180px;">Valor</th><th>Anexo</th><th class="text-end">Ações</th></tr></thead>
     <tbody>${gastosCirurgicos.map((gasto, index) => `
       <tr>
-        <td><input class="form-control gasto-descricao" data-index="${index}" value="${gasto.descricao || ""}"></td>
-        <td><input class="form-control gasto-valor" data-index="${index}" type="number" step="0.01" min="0" value="${gasto.valor || ""}"></td>
-        <td><input class="form-control gasto-anexo" data-index="${index}" type="file"></td>
+        <td>${gasto.descricao || "-"}</td>
+        <td>${formatarMoeda(gasto.valor)}</td>
+        <td>${labelAnexoGasto(gasto)}</td>
         <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" data-remove-gasto="${index}"><i class="fa-solid fa-trash"></i></button></td>
       </tr>`).join("") || `<tr><td colspan="4" class="empty-state">Nenhum gasto cirúrgico adicionado.</td></tr>`}</tbody>`;
   atualizarTotalGastos();
 }
 
-function sincronizarGastosDoDom() {
-  document.querySelectorAll(".gasto-descricao").forEach((input) => {
-    if (gastosCirurgicos[input.dataset.index]) gastosCirurgicos[input.dataset.index].descricao = input.value;
+function adicionarGastoSelecionado() {
+  const descricaoInput = document.getElementById("gastoDescricao");
+  const valorInput = document.getElementById("gastoValor");
+  const anexoInput = document.getElementById("gastoAnexo");
+  const descricao = descricaoInput.value.trim();
+  const valor = Number(String(valorInput.value || "0").replace(",", ".") || 0);
+  const arquivo = anexoInput.files?.[0] || null;
+
+  if (!descricao && !valor && !arquivo) {
+    alert("Informe a descrição, o valor ou selecione um anexo para adicionar o gasto.");
+    return;
+  }
+
+  gastosCirurgicos.push({
+    id: gerarId("g"),
+    descricao,
+    valor,
+    arquivo,
+    arquivoNome: arquivo?.name || ""
   });
-  document.querySelectorAll(".gasto-valor").forEach((input) => {
-    if (gastosCirurgicos[input.dataset.index]) gastosCirurgicos[input.dataset.index].valor = Number(input.value || 0);
-  });
+
+  descricaoInput.value = "";
+  valorInput.value = "";
+  anexoInput.value = "";
+  renderGastos();
 }
 
 function atualizarTotalGastos() {
   const total = gastosCirurgicos.reduce((sum, gasto) => sum + Number(gasto.valor || 0), 0);
   document.getElementById("totalGastos").textContent = `Total: ${total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`;
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function labelAnexoGasto(gasto) {
+  if (gasto.arquivoNome) return gasto.arquivoNome;
+  if (gasto.anexoNome) return gasto.anexoNome;
+  const anexos = Object.values(gasto.anexos || {}).filter((anexo) => anexo && anexo.status !== "excluido" && !anexo.excluido);
+  if (anexos.length) {
+    return anexos.map((anexo) => `
+      <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+        <a href="${anexo.secure_url || anexo.url}" target="_blank" rel="noopener">${anexo.descricao || anexo.original_filename || "Visualizar"}</a>
+        <button class="btn btn-sm btn-outline-danger" type="button" data-gasto-index="${gastosCirurgicos.indexOf(gasto)}" data-remove-gasto-anexo="${anexo.id}" title="Remover anexo"><i class="fa-solid fa-trash"></i></button>
+      </div>`).join("");
+  }
+  return "-";
 }
 
 function renderMovimentacoes() {
@@ -372,21 +466,32 @@ function renderMovimentacoes() {
         <td>${mov.dataHora ? new Date(mov.dataHora).toLocaleString("pt-BR") : "-"}</td>
         <td>${mov.usuarioNome || "-"}</td>
         <td>${mov.comentario || "-"}</td>
-        <td>${mov.anexo?.secure_url ? `<a href="${mov.anexo.secure_url}" target="_blank" rel="noopener">Visualizar</a>` : "-"}</td>
+        <td>${renderAnexoMovimentacao(mov)}</td>
       </tr>`).join("") || `<tr><td colspan="4" class="empty-state">Nenhuma movimentação registrada.</td></tr>`}</tbody>`;
 }
 
-async function salvarCirurgia(event, usuario) {
+function renderAnexoMovimentacao(mov) {
+  if (!mov.anexo?.secure_url || mov.anexo?.excluido || mov.anexo?.status === "excluido") return "-";
+  return `
+    <div class="d-flex align-items-center justify-content-between gap-2">
+      <a href="${mov.anexo.secure_url}" target="_blank" rel="noopener">Visualizar</a>
+      <button class="btn btn-sm btn-outline-danger" type="button" data-remove-movimentacao-anexo="${mov.id}" title="Remover anexo"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+}
+
+async function salvarCirurgia(event, usuario, app) {
   event.preventDefault();
   const form = event.currentTarget;
-  sincronizarGastosDoDom();
   const cirurgiaId = form.elements.id.value || gerarIdCirurgia();
   const anteriorSnap = await get(ref(db, `cirurgias/${cirurgiaId}`));
   const anterior = anteriorSnap.val();
+  const anexosParaExcluir = [...anexosPendentesExclusao];
+  await processarExclusoesAnexosPendentes(cirurgiaId, usuario);
+  const gastosParaSalvar = gastosCirurgicos.map(({ arquivo, ...gasto }) => gasto);
   const cirurgia = {
     id: cirurgiaId,
     pacienteId: form.pacienteId.value,
-    medicoId: form.medicoId.value,
+    medicoId: form.medicoId.value || usuario.medicoId || usuario.id,
     hospitalId: form.hospitalId.value,
     convenioId: form.convenioId.value,
     tipoProcedimentoId: form.tipoProcedimentoId.value,
@@ -395,9 +500,10 @@ async function salvarCirurgia(event, usuario) {
     horarioInicial: form.horarioInicial.value,
     horarioFinalPrevisto: form.horarioFinalPrevisto.value,
     status: form.status.value,
+    anexos: filtrarAnexosAtivos(anterior?.anexos || {}, anexosParaExcluir),
     materiais: materiaisAdicionados,
-    gastosCirurgicos: Object.fromEntries(gastosCirurgicos.map((g) => [g.id, g])),
-    totalGastosCirurgicos: gastosCirurgicos.reduce((sum, gasto) => sum + Number(gasto.valor || 0), 0),
+    gastosCirurgicos: Object.fromEntries(gastosParaSalvar.map((g) => [g.id, g])),
+    totalGastosCirurgicos: gastosParaSalvar.reduce((sum, gasto) => sum + Number(gasto.valor || 0), 0),
     movimentacoes: Object.fromEntries(movimentacoes.map((mov) => [mov.id, mov])),
     observacoes: form.observacoes.value.trim(),
     atualizadoEm: new Date().toISOString(),
@@ -431,9 +537,8 @@ async function salvarCirurgia(event, usuario) {
     dadosAntes: alterados.dadosAntes,
     dadosDepois: alterados.dadosDepois
   });
-  for (const input of document.querySelectorAll(".gasto-anexo")) {
-    const file = input.files?.[0];
-    const gasto = gastosCirurgicos[input.dataset.index];
+  for (const gasto of gastosCirurgicos) {
+    const file = gasto.arquivo;
     if (file && gasto?.id) {
       await adicionarAnexoGastoCirurgico({
         file,
@@ -450,12 +555,91 @@ async function salvarCirurgia(event, usuario) {
         usuarioId: usuario.id,
         usuarioNome: usuario.nome,
         acao: anterior ? "Edição de gasto cirúrgico" : "Criação de gasto cirúrgico",
-        dadosDepois: gasto
+        dadosDepois: removerArquivoDoGasto(gasto)
       });
     }
   }
   form.elements.id.value = cirurgiaId;
   alert("Cirurgia salva com sucesso.");
+  app?.loadPage("pages/cirurgias.html");
+}
+
+function removerGasto(index) {
+  const gasto = gastosCirurgicos[index];
+  Object.values(gasto?.anexos || {}).forEach((anexo) => {
+    if (anexo?.id) {
+      adicionarExclusaoPendente({
+        tipoAnexo: "gasto_cirurgico",
+        gastoId: gasto.id,
+        anexoId: anexo.id
+      });
+    }
+  });
+  gastosCirurgicos.splice(index, 1);
+}
+
+function marcarAnexoGastoParaExclusao(gastoIndex, anexoId) {
+  const gasto = gastosCirurgicos[gastoIndex];
+  if (!gasto?.anexos?.[anexoId]) return;
+  if (!confirm("Remover este anexo? A exclusão no Cloudinary será feita somente ao salvar a cirurgia.")) return;
+  adicionarExclusaoPendente({
+    tipoAnexo: "gasto_cirurgico",
+    gastoId: gasto.id,
+    anexoId
+  });
+  delete gasto.anexos[anexoId];
+  renderGastos();
+}
+
+function marcarAnexoMovimentacaoParaExclusao(movimentacaoId) {
+  const movimentacao = movimentacoes.find((mov) => mov.id === movimentacaoId);
+  if (!movimentacao?.anexo?.id) return;
+  if (!confirm("Remover este anexo? A exclusão no Cloudinary será feita somente ao salvar a cirurgia.")) return;
+  adicionarExclusaoPendente({
+    tipoAnexo: "cirurgia",
+    anexoId: movimentacao.anexo.id
+  });
+  delete movimentacao.anexo;
+  renderMovimentacoes();
+}
+
+function adicionarExclusaoPendente(item) {
+  const chave = `${item.tipoAnexo}:${item.gastoId || ""}:${item.anexoId}`;
+  if (anexosPendentesExclusao.some((pendente) => `${pendente.tipoAnexo}:${pendente.gastoId || ""}:${pendente.anexoId}` === chave)) return;
+  anexosPendentesExclusao.push(item);
+}
+
+async function processarExclusoesAnexosPendentes(cirurgiaId, usuario) {
+  if (!anexosPendentesExclusao.length) return;
+  for (const pendente of anexosPendentesExclusao) {
+    if (pendente.tipoAnexo === "gasto_cirurgico") {
+      await excluirAnexoGastoCirurgico({
+        cirurgiaId,
+        gastoId: pendente.gastoId,
+        anexoId: pendente.anexoId,
+        usuario
+      });
+    } else {
+      await excluirAnexoCirurgia({
+        cirurgiaId,
+        anexoId: pendente.anexoId,
+        usuario
+      });
+    }
+  }
+  anexosPendentesExclusao = [];
+}
+
+function filtrarAnexosAtivos(anexos = {}, pendentes = []) {
+  const anexosRemovidos = new Set(pendentes.filter((item) => item.tipoAnexo === "cirurgia").map((item) => item.anexoId));
+  return Object.fromEntries(Object.entries(anexos || {}).filter(([anexoId, anexo]) => {
+    return !anexosRemovidos.has(anexoId) && anexo?.status !== "excluido" && !anexo?.excluido;
+  }));
+}
+
+function removerArquivoDoGasto(gasto) {
+  const { arquivo, ...dados } = gasto;
+  return dados;
 }
 
 async function adicionarMovimentacao(usuario) {

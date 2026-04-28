@@ -8,19 +8,21 @@ let appRef = null;
 let usuarioAtual = null;
 let pacientes = {};
 let medicos = {};
+let usuarios = {};
 let cirurgias = [];
 
 export async function initPage({ usuario, app }) {
   appRef = app;
   usuarioAtual = usuario;
 
-  const [pacientesSnap, medicosSnap, cirurgiasSnap] = await Promise.all([get(ref(db, "pacientes")), get(ref(db, "medicos")), get(ref(db, "cirurgias"))]);
+  const [pacientesSnap, medicosSnap, usuariosSnap, cirurgiasSnap] = await Promise.all([get(ref(db, "pacientes")), get(ref(db, "medicos")), get(ref(db, "usuarios")), get(ref(db, "cirurgias"))]);
   pacientes = pacientesSnap.val() || {};
   medicos = medicosSnap.val() || {};
+  usuarios = usuariosSnap.val() || {};
   cirurgias = Object.values(cirurgiasSnap.val() || {});
 
   if (usuarioEhMedico(usuario) && !usuarioEhAdmin(usuario)) {
-    cirurgias = await buscarIdsCirurgiasPorMedico(usuario.medicoId || usuario.id);
+    cirurgias = await buscarCirurgiasDoMedico(usuario);
   }
 
   document.getElementById("filtroStatusCirurgia")?.addEventListener("change", renderizarTabela);
@@ -41,7 +43,7 @@ function renderizarTabela() {
       <tr>
         <td>${c.dataCirurgia || "-"}</td>
         <td>${pacientes[c.pacienteId]?.nome || "-"}</td>
-        <td>${medicos[c.medicoId]?.nome || "-"}</td>
+        <td>${nomeMedico(c.medicoId)}</td>
         <td>${c.tipoProcedimento || "-"}</td>
         <td><span class="badge badge-soft">${formatarStatus(c.status)}</span></td>
         <td class="text-end">
@@ -104,4 +106,20 @@ async function arquivarCirurgia(event) {
 function formatarStatus(status) {
   if (!status) return "-";
   return String(status).replace(/_/g, " ").replace(/\b\p{L}/gu, (letra) => letra.toLocaleUpperCase("pt-BR"));
+}
+
+function nomeMedico(medicoId) {
+  if (!medicoId) return "-";
+  const usuario = usuarios[medicoId];
+  return medicos[medicoId]?.nome || medicos[usuario?.medicoId]?.nome || usuario?.nome || "-";
+}
+
+async function buscarCirurgiasDoMedico(usuario) {
+  const idsBusca = [...new Set([usuario.medicoId, usuario.id].filter(Boolean))];
+  const listas = await Promise.all(idsBusca.map((medicoId) => buscarIdsCirurgiasPorMedico(medicoId)));
+  return Object.values(Object.fromEntries(listsToEntries(listas)));
+}
+
+function listsToEntries(listas) {
+  return listas.flat().filter(Boolean).map((cirurgia) => [cirurgia.id, cirurgia]);
 }

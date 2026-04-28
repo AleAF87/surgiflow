@@ -1,4 +1,4 @@
-import { uploadArquivoCloudinaryUnsigned } from "../cloudinary-config.js";
+import { moverArquivoCloudinaryParaExcluidos, uploadArquivoCloudinaryUnsigned } from "../cloudinary-config.js";
 
 function limparNomeArquivo(nomeArquivo = "arquivo") {
   return nomeArquivo
@@ -36,19 +36,12 @@ export async function uploadArquivoCloudinary({ file, cirurgiaId, tipoAnexo, nom
 }
 
 export async function solicitarMoverArquivoParaExcluidos({ publicId, cirurgiaId, anexoId, tipoAnexo, usuarioId, usuarioNome }) {
-  const response = await fetch("/.netlify/functions/cloudinary-move-to-deleted", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      public_id: publicId,
-      cirurgiaId,
-      anexoId,
-      tipoAnexo,
-      usuarioId,
-      usuarioNome
-    })
+  return moverArquivoCloudinaryParaExcluidos({
+    publicId,
+    cirurgiaId,
+    anexoId,
+    tipoAnexo,
+    usuarioId,
+    usuarioNome
   });
-  const data = await response.json();
-  if (!response.ok || !data.success) throw new Error(data.error || "Falha ao mover arquivo no Cloudinary");
-  return data;
 }

@@ -53,14 +53,16 @@ Níveis sugeridos: `1` administrador geral, `2` administrador da clínica, `3` m
 
 ## Cloudinary
 
-Uploads são feitos pelo front-end usando unsigned upload. Para testar os anexos enquanto a função segura da Netlify ainda não estiver pronta, configure em `js/cloudinary-config.js` somente:
+Uploads são feitos pelo front-end usando unsigned upload. Para testar os anexos enquanto a função segura da Netlify ainda não estiver pronta, configure em `js/cloudinary-config.js`:
 
 ```js
 cloudName
 uploadPreset
+apiKey
+apiSecret
 ```
 
-Não coloque API Secret no front-end.
+Durante o desenvolvimento atual, a movimentação de arquivos para `excluidos/` também está sendo feita pelo front-end via `cloudinary-config.js`. Isso expõe o `apiSecret` no navegador; use apenas em ambiente de teste e migre para Netlify Function antes de produção.
 
 Pastas usadas:
 

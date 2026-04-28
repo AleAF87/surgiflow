@@ -6,6 +6,7 @@ import { registrarLog } from "./services/logs-service.js";
 let usuarioAtual = null;
 let pacientes = {};
 let medicos = {};
+let usuarios = {};
 let cirurgiasArquivadas = [];
 
 export async function initPage({ usuario }) {
@@ -15,9 +16,10 @@ export async function initPage({ usuario }) {
 }
 
 async function carregarDados() {
-  const [pacientesSnap, medicosSnap, cirurgiasSnap] = await Promise.all([get(ref(db, "pacientes")), get(ref(db, "medicos")), get(ref(db, "cirurgias"))]);
+  const [pacientesSnap, medicosSnap, usuariosSnap, cirurgiasSnap] = await Promise.all([get(ref(db, "pacientes")), get(ref(db, "medicos")), get(ref(db, "usuarios")), get(ref(db, "cirurgias"))]);
   pacientes = pacientesSnap.val() || {};
   medicos = medicosSnap.val() || {};
+  usuarios = usuariosSnap.val() || {};
   cirurgiasArquivadas = Object.values(cirurgiasSnap.val() || {})
     .filter((cirurgia) => cirurgia.arquivada)
     .sort((a, b) => String(b.arquivadaEm || "").localeCompare(String(a.arquivadaEm || "")));
@@ -30,7 +32,7 @@ function renderizarTabela() {
       <tr>
         <td>${c.dataCirurgia || "-"}</td>
         <td>${pacientes[c.pacienteId]?.nome || "-"}</td>
-        <td>${medicos[c.medicoId]?.nome || "-"}</td>
+        <td>${nomeMedico(c.medicoId)}</td>
         <td>${c.tipoProcedimento || "-"}</td>
         <td><span class="badge badge-soft">${formatarStatus(c.status)}</span></td>
         <td>${formatarDataHora(c.arquivadaEm)}</td>
@@ -83,4 +85,10 @@ function formatarStatus(status) {
 function formatarDataHora(value) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
+function nomeMedico(medicoId) {
+  if (!medicoId) return "-";
+  const usuario = usuarios[medicoId];
+  return medicos[medicoId]?.nome || medicos[usuario?.medicoId]?.nome || usuario?.nome || "-";
 }
