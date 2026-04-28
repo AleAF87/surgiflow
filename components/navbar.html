@@ -1,0 +1,50 @@
+﻿<nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="pages/dashboard.html">
+      <span class="navbar-brand-icon"><img src="img/logo.png" alt="SurgiFlow"></span>
+      <span>SurgiFlow</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Menu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="pages/dashboard.html"><i class="fa-solid fa-chart-line me-1"></i>Dashboard</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="fa-solid fa-folder-open me-1"></i>Cadastros</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="pages/pacientes.html"><i class="fa-solid fa-user-injured me-1"></i>Pacientes</a></li>
+            <li><a class="dropdown-item" href="pages/medicos.html"><i class="fa-solid fa-user-doctor me-1"></i>Médicos</a></li>
+            <li><a class="dropdown-item" href="pages/hospitais.html"><i class="fa-solid fa-hospital me-1"></i>Hospitais</a></li>
+            <li><a class="dropdown-item" href="pages/convenios.html"><i class="fa-solid fa-handshake me-1"></i>Convênios</a></li>
+            <li><a class="dropdown-item" href="pages/materiais.html"><i class="fa-solid fa-boxes-stacked me-1"></i>Materiais</a></li>
+            <li><a class="dropdown-item" href="pages/especialidades.html"><i class="fa-solid fa-briefcase-medical me-1"></i>Especialidades</a></li>
+            <li><a class="dropdown-item" href="pages/tipos-cirurgias.html"><i class="fa-solid fa-stethoscope me-1"></i>Tipos de cirurgia</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="pages/cirurgias.html"><i class="fa-solid fa-calendar-check me-1"></i>Cirurgias</a></li>
+        <li class="nav-item"><a class="nav-link" href="pages/pos-cirurgico.html"><i class="fa-solid fa-notes-medical me-1"></i>Pós-cirúrgico</a></li>
+        <li class="nav-item dropdown admin-only d-none">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="fa-solid fa-shield-halved me-1"></i>Admin</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="pages/usuarios.html"><i class="fa-solid fa-users-gear me-1"></i>Usuários</a></li>
+            <li><a class="dropdown-item" href="pages/permissoes.html"><i class="fa-solid fa-user-lock me-1"></i>Permissões</a></li>
+            <li><a class="dropdown-item" href="pages/cirurgias-arquivadas.html"><i class="fa-solid fa-box-archive me-1"></i>Cirurgias arquivadas</a></li>
+            <li><a class="dropdown-item" href="pages/arquivos-excluidos.html"><i class="fa-solid fa-box-archive me-1"></i>Arquivos excluídos</a></li>
+            <li><a class="dropdown-item" href="pages/logs.html"><i class="fa-solid fa-clipboard-list me-1"></i>Logs</a></li>
+          </ul>
+        </li>
+      </ul>
+      <div class="dropdown">
+        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fa-solid fa-user me-2"></i><span id="userGreeting">Usuário</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><span class="dropdown-item-text small text-muted" id="userAccessLabel">Nível de acesso</span></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#" id="navLogout"><i class="fa-solid fa-right-from-bracket me-1"></i>Sair</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

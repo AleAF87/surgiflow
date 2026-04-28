@@ -1,0 +1,17 @@
+﻿<section class="page-shell">
+  <div class="page-header"><div class="page-title"><h1>Pós-cirúrgico</h1><p>Acompanhamento vinculado a cirurgia.</p></div></div>
+  <div class="sf-card">
+    <form id="posForm" class="form-grid">
+      <div class="span-2"><label class="form-label">Cirurgia</label><select class="form-select" name="cirurgiaId" required></select></div>
+      <div><label class="form-label">Data de retorno</label><input class="form-control" type="date" name="dataRetorno"></div>
+      <div><label class="form-label">Próxima consulta</label><input class="form-control" type="date" name="proximaConsulta"></div>
+      <div class="span-2"><label class="form-label">Medicações</label><textarea class="form-control" name="medicacoes"></textarea></div>
+      <div class="span-2"><label class="form-label">Orientações</label><textarea class="form-control" name="orientacoes"></textarea></div>
+      <div class="span-2"><label class="form-label">Histórico/evolução</label><textarea class="form-control" name="historicoEvolucao"></textarea></div>
+      <div class="span-2"><label class="form-label">Complicações</label><textarea class="form-control" name="complicacoes"></textarea></div>
+      <div class="span-4"><label class="form-label">Observações do médico</label><textarea class="form-control" name="observacoesMedico"></textarea></div>
+      <div class="span-4"><button class="btn btn-primary" type="submit">Registrar acompanhamento</button></div>
+    </form>
+  </div>
+  <div class="sf-card mt-3"><div class="table-responsive"><table class="table" id="posTable"></table></div></div>
+</section>

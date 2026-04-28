@@ -1,0 +1,40 @@
+﻿<section class="page-shell">
+  <div class="page-header">
+    <div class="page-title"><h1>Cirurgias</h1><p>Agenda, status e rastreio por paciente e médico.</p></div>
+    <a class="btn btn-primary" href="pages/cirurgia-form.html"><i class="fa-solid fa-plus me-2"></i>Nova cirurgia</a>
+  </div>
+  <div class="sf-card">
+    <div class="filters-grid mb-3">
+      <select class="form-select" id="filtroStatusCirurgia">
+        <option value="">Todos os status</option>
+        <option value="agendada">Agendada</option>
+        <option value="confirmada">Confirmada</option>
+        <option value="realizada">Realizada</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+    </div>
+    <div class="table-responsive"><table class="table align-middle" id="cirurgiasTable"></table></div>
+  </div>
+</section>
+
+<div class="modal fade" id="arquivarCirurgiaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="arquivarCirurgiaForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Arquivar cirurgia</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="cirurgiaId">
+          <label class="form-label">Justificativa</label>
+          <textarea class="form-control" name="justificativa" rows="4" required></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Arquivar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

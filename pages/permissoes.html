@@ -1,0 +1,61 @@
+﻿<section class="page-shell">
+  <div class="page-header"><div class="page-title"><h1>Permissões por paciente</h1><p>Conceda acesso de visualização ou edição para outro médico.</p></div></div>
+  <div class="sf-card mb-3">
+    <h2 class="section-title mt-0">Solicitações de acesso</h2>
+    <div class="table-responsive"><table class="table" id="solicitacoesAcessoTable"></table></div>
+  </div>
+  <div class="sf-card">
+    <form id="permissaoForm" class="form-grid">
+      <div><label class="form-label">Paciente</label><select class="form-select" name="pacienteId" required></select></div>
+      <div><label class="form-label">Médico</label><select class="form-select" name="medicoId" required></select></div>
+      <div><label class="form-label">Visualizar</label><select class="form-select" name="visualizar"><option value="true">Sim</option><option value="false">Não</option></select></div>
+      <div><label class="form-label">Editar</label><select class="form-select" name="editar"><option value="false">Não</option><option value="true">Sim</option></select></div>
+      <div class="span-4"><label class="form-label">Motivo</label><input class="form-control" name="motivo"></div>
+      <div class="span-4"><button class="btn btn-primary" type="submit">Salvar permissão</button></div>
+    </form>
+  </div>
+  <div class="sf-card mt-3"><div class="table-responsive"><table class="table" id="permissoesTable"></table></div></div>
+</section>
+
+<div class="modal fade" id="solicitacaoAcessoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="solicitacaoAcessoForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Solicitação de acesso</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="uid">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label">Nome</label><input class="form-control" name="nome" required></div>
+            <div class="col-md-4">
+              <label class="form-label">Nível de acesso</label>
+              <select class="form-select" name="nivelAcesso" required>
+                <option value="1">Administrador geral</option>
+                <option value="2">Administrador da clínica</option>
+                <option value="3">Médico</option>
+                <option value="4">Secretária</option>
+                <option value="5">Financeiro</option>
+                <option value="6">Hospital</option>
+                <option value="7">Paciente</option>
+                <option value="8">Somente leitura</option>
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" name="email" type="email"></div>
+            <div class="col-md-3"><label class="form-label">CPF</label><input class="form-control" name="cpf"></div>
+            <div class="col-md-3"><label class="form-label">Telefone</label><input class="form-control" name="telefone"></div>
+            <div class="col-md-4"><label class="form-label">CRM</label><input class="form-control" name="crm"></div>
+            <div class="col-md-8"><label class="form-label">Especialidade/Setor</label><input class="form-control" name="especialidade"></div>
+            <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="3"></textarea></div>
+            <div class="col-12"><div class="small text-muted" id="solicitacaoAcessoMeta"></div></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

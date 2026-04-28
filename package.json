@@ -1,0 +1,16 @@
+﻿{
+  "name": "surgiflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema web para agendamento e acompanhamento de cirurgias médicas.",
+  "scripts": {
+    "dev": "netlify dev",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.38.1"
+  }
+}

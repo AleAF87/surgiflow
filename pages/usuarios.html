@@ -1,0 +1,80 @@
+<section class="page-shell">
+  <div class="page-header">
+    <div class="page-title">
+      <h1>Usuários</h1>
+      <p>Gerencie perfis, status e níveis de acesso do sistema.</p>
+    </div>
+  </div>
+
+  <div class="sf-card mb-3">
+    <div class="filters-grid">
+      <input class="form-control" id="usuariosSearch" placeholder="Pesquisar por nome, e-mail, nível ou status">
+      <select class="form-select" id="usuariosStatusFilter">
+        <option value="">Todos os status</option>
+        <option value="ativo">Ativo</option>
+        <option value="pendente">Pendente</option>
+        <option value="reprovado">Reprovado</option>
+        <option value="inativo">Inativo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sf-card">
+    <div class="table-responsive"><table class="table align-middle" id="usuariosTable"></table></div>
+  </div>
+</section>
+
+<div class="modal fade" id="usuarioPerfilModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="usuarioPerfilForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar usuário</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="uid">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label">Nome</label><input class="form-control" name="nome" required></div>
+            <div class="col-md-4">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="ativo">Ativo</option>
+                <option value="pendente">Pendente</option>
+                <option value="reprovado">Reprovado</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+            <div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" name="email" type="email"></div>
+            <div class="col-md-6">
+              <label class="form-label">Nível de acesso</label>
+              <select class="form-select" name="nivelAcesso" required>
+                <option value="1">Administrador geral</option>
+                <option value="2">Administrador da clínica</option>
+                <option value="3">Médico</option>
+                <option value="4">Secretária</option>
+                <option value="5">Financeiro</option>
+                <option value="6">Hospital</option>
+                <option value="7">Paciente</option>
+                <option value="8">Somente leitura</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">CPF</label><input class="form-control" name="cpf"></div>
+            <div class="col-md-4"><label class="form-label">Telefone</label><input class="form-control" name="telefone"></div>
+            <div class="col-md-4"><label class="form-label">CRM</label><input class="form-control" name="crm"></div>
+            <div class="col-md-12">
+              <label class="form-label">Especialidade/Setor</label>
+              <select class="form-select" name="especialidade"></select>
+            </div>
+            <div class="col-12"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="3"></textarea></div>
+            <div class="col-12"><div class="small text-muted" id="usuarioPerfilMeta"></div></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar perfil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

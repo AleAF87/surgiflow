@@ -1,0 +1,94 @@
+﻿<section class="page-shell">
+  <div class="page-header">
+    <div class="page-title"><h1>Cadastro de cirurgia</h1><p>Dados principais, materiais, gastos, anexos e histórico.</p></div>
+    <a class="btn btn-outline-secondary" href="pages/cirurgias.html"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a>
+  </div>
+  <form id="cirurgiaForm" class="sf-card">
+    <input type="hidden" name="id">
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Paciente</label>
+        <div class="input-group"><select class="form-select" name="pacienteId" required></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="pacientes" title="Adicionar paciente"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div>
+        <label class="form-label">Médico responsável</label>
+        <div class="input-group"><select class="form-select" name="medicoId" required></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="medicos" title="Adicionar médico"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div>
+        <label class="form-label">Hospital</label>
+        <div class="input-group"><select class="form-select" name="hospitalId" required></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="hospitais" title="Adicionar hospital"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div>
+        <label class="form-label">Convênio</label>
+        <div class="input-group"><select class="form-select" name="convenioId" required></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="convenios" title="Adicionar convênio"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div class="span-2">
+        <label class="form-label">Tipo de procedimento/cirurgia</label>
+        <div class="input-group"><select class="form-select" name="tipoProcedimentoId" required></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="tiposCirurgias" title="Adicionar tipo de cirurgia"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div><label class="form-label">Data da cirurgia</label><input class="form-control" type="date" name="dataCirurgia" required></div>
+      <div><label class="form-label">Status</label><select class="form-select" name="status" required><option value="agendada">Agendada</option><option value="confirmada">Confirmada</option><option value="realizada">Realizada</option><option value="cancelada">Cancelada</option></select></div>
+      <div><label class="form-label">Horário inicial</label><input class="form-control" type="time" name="horarioInicial" required></div>
+      <div><label class="form-label">Horário final previsto</label><input class="form-control" type="time" name="horarioFinalPrevisto" required></div>
+      <div class="span-4"><label class="form-label">Observações</label><textarea class="form-control" name="observacoes" rows="3"></textarea></div>
+    </div>
+
+    <h2 class="section-title">Materiais</h2>
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Material</label>
+        <div class="input-group"><select class="form-select" id="materialSelect"></select><button class="btn btn-outline-primary quick-create-btn" type="button" data-entity="materiais" title="Adicionar material"><i class="fa-solid fa-plus"></i></button></div>
+      </div>
+      <div class="col-md-2"><label class="form-label">Quantidade</label><input class="form-control" id="materialQuantidade" type="number" min="1" value="1"></div>
+      <div class="col-md-3"><label class="form-label">Observação</label><input class="form-control" id="materialObservacao"></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="button" id="addMaterial"><i class="fa-solid fa-plus me-1"></i>Adicionar</button></div>
+    </div>
+    <div class="table-responsive mt-3"><table class="table" id="materiaisTable"></table></div>
+
+    <h2 class="section-title">Gastos cirúrgicos</h2>
+    <div class="table-responsive">
+      <table class="table align-middle" id="gastosTable"></table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center gap-3">
+      <button class="btn btn-outline-primary" type="button" id="addGasto"><i class="fa-solid fa-plus me-1"></i>Adicionar gasto</button>
+      <strong id="totalGastos">Total: R$ 0,00</strong>
+    </div>
+
+    <h2 class="section-title">Histórico de movimentações</h2>
+    <div class="row g-2">
+      <div class="col-md-5"><textarea class="form-control" id="movimentacaoComentario" rows="2" placeholder="Comentário da movimentação"></textarea></div>
+      <div class="col-md-3"><input class="form-control" type="file" id="movimentacaoAnexo"></div>
+      <div class="col-md-2"><input class="form-control" type="date" id="movimentacaoDataDocumento"></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100" type="button" id="addMovimentacao"><i class="fa-solid fa-plus me-1"></i>Adicionar</button></div>
+    </div>
+    <div class="table-responsive mt-3"><table class="table" id="movimentacoesTable"></table></div>
+
+    <h2 class="section-title">Histórico de alterações</h2>
+    <div id="historicoAlteracoes" class="small text-muted">O histórico será gravado no cadastro da cirurgia e no nó logs/.</div>
+
+    <div class="d-flex justify-content-end mt-4">
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk me-2"></i>Salvar cirurgia</button>
+    </div>
+  </form>
+</section>
+
+<div class="modal fade" id="quickCreateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form id="quickCreateForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickCreateTitle">Novo cadastro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="entity">
+          <div id="quickCreateFields"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar e selecionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
