@@ -83,6 +83,26 @@ body {
   font-size: .82rem;
   text-transform: uppercase;
 }
+.sort-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-transform: inherit;
+  text-align: left;
+}
+.sort-btn i {
+  color: var(--sf-muted);
+  font-size: .78rem;
+}
+.sort-btn.active i { color: var(--sf-red); }
+.sort-btn:hover { color: var(--sf-red-dark); }
 .form-control:focus, .form-select:focus {
   border-color: var(--sf-red);
   box-shadow: 0 0 0 .2rem rgba(180, 35, 42, .14);
@@ -201,6 +221,32 @@ body {
   justify-content: flex-end;
   gap: 6px;
 }
+.calendar-page { max-width: 1680px; }
+.calendar-card { padding: 10px; }
+#cirurgiasCalendar {
+  min-height: 720px;
+  font-size: .92rem;
+}
+.fc {
+  --fc-border-color: var(--sf-line);
+  --fc-button-bg-color: var(--sf-red);
+  --fc-button-border-color: var(--sf-red);
+  --fc-button-hover-bg-color: var(--sf-red-dark);
+  --fc-button-hover-border-color: var(--sf-red-dark);
+  --fc-button-active-bg-color: var(--sf-red-dark);
+  --fc-button-active-border-color: var(--sf-red-dark);
+  --fc-today-bg-color: rgba(180, 35, 42, .08);
+}
+.fc .fc-toolbar-title {
+  font-size: 1.2rem;
+  font-weight: 750;
+}
+.fc .fc-event {
+  border-radius: 6px;
+  padding: 2px 4px;
+  cursor: grab;
+}
+.fc .fc-event:active { cursor: grabbing; }
 @media (max-width: 1000px) {
   .stat-grid, .filters-grid, .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

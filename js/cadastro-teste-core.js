@@ -7,6 +7,7 @@ const TEST_USER = {
 
 const SCRIPT_BY_PAGE = {
   "cirurgias.html": "./cirurgias.js",
+  "calendario.html": "./calendario.js",
   "cirurgia-form.html": "./cirurgia-form.js"
 };
 

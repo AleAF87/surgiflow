@@ -4,6 +4,7 @@ import { gerarIdCirurgia, gerarId } from "./utils/id-generator.js";
 import { registrarLog, obterCamposAlterados } from "./services/logs-service.js";
 import { criarIndicesConsultaCirurgia, atualizarIndiceMedicoConsulta, atualizarIndicePacienteConsulta } from "./services/indexes-service.js";
 import { adicionarAnexoCirurgia, adicionarAnexoGastoCirurgico, excluirAnexoCirurgia, excluirAnexoGastoCirurgico } from "./services/anexos-service.js";
+import { usuarioEhSecretaria } from "./services/auth-service.js";
 
 let materiaisAdicionados = [];
 let gastosCirurgicos = [];
@@ -13,6 +14,8 @@ let selects = {};
 let permitirSaidaSemAviso = false;
 let navegacaoHandler = null;
 let beforeUnloadHandler = null;
+let usuarioFormulario = null;
+let permissoesSecretariaFormulario = {};
 
 const QUICK_CREATE_CONFIG = {
   pacientes: {
@@ -93,11 +96,16 @@ const QUICK_CREATE_CONFIG = {
 };
 
 export async function initPage({ usuario, app }) {
+  usuarioFormulario = usuario;
   const form = document.getElementById("cirurgiaForm");
   selects = await carregarSelects();
+  permissoesSecretariaFormulario = usuarioEhSecretaria(usuario)
+    ? (await get(ref(db, `permissoes_secretarias_medicos/${usuario.id}`))).val() || {}
+    : {};
   await garantirMedicoDoUsuario(usuario);
   aplicarMedicoDoUsuario(usuario);
   await carregarCirurgiaEmEdicao(usuario);
+  aplicarRestricaoSecretaria(usuario);
   renderMateriais();
   renderGastos();
   renderMovimentacoes();
@@ -195,6 +203,25 @@ function aplicarMedicoDoUsuario(usuario) {
     select.value = medicoId;
     select.disabled = true;
   }
+}
+
+function aplicarRestricaoSecretaria(usuario) {
+  if (!usuarioEhSecretaria(usuario)) return;
+  const form = document.getElementById("cirurgiaForm");
+  const medicoId = form?.medicoId?.value || "";
+  const podeMovimentar = Boolean(permissoesSecretariaFormulario[medicoId]?.movimentar);
+  const permitidos = new Set(["id", ...(podeMovimentar ? ["dataCirurgia", "horarioInicial", "horarioFinalPrevisto"] : [])]);
+  document.querySelectorAll("#cirurgiaForm input, #cirurgiaForm select, #cirurgiaForm textarea, #cirurgiaForm button").forEach((el) => {
+    if (el.type === "submit") return;
+    if (el.closest("#quickCreateModal")) return;
+    const nome = el.name || el.id;
+    if (!permitidos.has(nome)) el.disabled = true;
+  });
+  document.querySelectorAll(".quick-create-btn, #addMaterial, #addGasto, #addMovimentacao, [data-remove-material], [data-remove-gasto]").forEach((el) => {
+    el.disabled = true;
+  });
+  const submit = document.querySelector('#cirurgiaForm button[type="submit"]');
+  if (submit) submit.disabled = !podeMovimentar;
 }
 
 async function carregarCirurgiaEmEdicao(usuario) {
@@ -489,6 +516,7 @@ function renderMateriais() {
       <td>${m.observacao || "-"}</td>
       <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" data-remove-material="${index}"><i class="fa-solid fa-trash"></i></button></td>
     </tr>`).join("") || `<tr><td colspan="4" class="empty-state">Nenhum material adicionado.</td></tr>`}</tbody>`;
+  aplicarRestricaoSecretaria(usuarioFormulario);
 }
 
 function renderGastos() {
@@ -502,6 +530,7 @@ function renderGastos() {
         <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" data-remove-gasto="${index}"><i class="fa-solid fa-trash"></i></button></td>
       </tr>`).join("") || `<tr><td colspan="4" class="empty-state">Nenhum gasto cirúrgico adicionado.</td></tr>`}</tbody>`;
   atualizarTotalGastos();
+  aplicarRestricaoSecretaria(usuarioFormulario);
 }
 
 function adicionarGastoSelecionado() {
@@ -566,6 +595,7 @@ function renderMovimentacoes() {
         <td>${mov.comentario || "-"}</td>
         <td>${renderAnexoMovimentacao(mov)}</td>
       </tr>`).join("") || `<tr><td colspan="4" class="empty-state">Nenhuma movimentação registrada.</td></tr>`}</tbody>`;
+  aplicarRestricaoSecretaria(usuarioFormulario);
 }
 
 function renderAnexoMovimentacao(mov) {
@@ -582,6 +612,14 @@ async function salvarCirurgia(event, usuario, app) {
   if (!validarItensNaoAdicionadosAntesDeSalvar()) return;
   const form = event.currentTarget;
   const cirurgiaId = form.elements.id.value || gerarIdCirurgia();
+  if (usuarioEhSecretaria(usuario) && !form.elements.id.value) {
+    alert("Secretárias só podem alterar data e horários de cirurgias já cadastradas.");
+    return;
+  }
+  if (usuarioEhSecretaria(usuario) && !permissoesSecretariaFormulario[form.medicoId.value]?.movimentar) {
+    alert("Você não tem permissão para alterar a agenda deste médico.");
+    return;
+  }
   const anteriorSnap = await get(ref(db, `cirurgias/${cirurgiaId}`));
   const anterior = anteriorSnap.val();
   const anexosParaExcluir = [...anexosPendentesExclusao];

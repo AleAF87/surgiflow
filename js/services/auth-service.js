@@ -81,3 +81,7 @@ export function usuarioEhAdmin(usuario) {
 export function usuarioEhMedico(usuario) {
   return Number(usuario?.nivelAcesso) === NIVEIS_ACESSO.MEDICO;
 }
+
+export function usuarioEhSecretaria(usuario) {
+  return Number(usuario?.nivelAcesso) === NIVEIS_ACESSO.SECRETARIA;
+}

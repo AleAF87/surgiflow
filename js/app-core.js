@@ -10,10 +10,12 @@ const SCRIPT_BY_PAGE = {
   "especialidades.html": "./especialidades.js",
   "tipos-cirurgias.html": "./tipos-cirurgias.js",
   "cirurgias.html": "./cirurgias.js",
+  "calendario.html": "./calendario.js",
   "cirurgias-arquivadas.html": "./cirurgias-arquivadas.js",
   "cirurgia-form.html": "./cirurgia-form.js",
   "pos-cirurgico.html": "./pos-cirurgico.js",
   "usuarios.html": "./usuarios.js",
+  "permissoes-secretarias.html": "./permissoes-secretarias.js",
   "arquivos-excluidos.html": "./arquivos-excluidos.js",
   "permissoes.html": "./permissoes.js",
   "logs.html": "./logs.js"
@@ -75,7 +77,7 @@ class SurgiFlowApp {
 
   async loadPage(pageUrl) {
     const pageName = pageUrl.split("/").pop();
-    if (["usuarios.html", "cirurgias-arquivadas.html", "arquivos-excluidos.html", "permissoes.html", "logs.html"].includes(pageName) && !usuarioEhAdmin(this.usuario)) {
+    if (["usuarios.html", "permissoes-secretarias.html", "cirurgias-arquivadas.html", "arquivos-excluidos.html", "permissoes.html", "logs.html"].includes(pageName) && !usuarioEhAdmin(this.usuario)) {
       this.renderAccessDenied();
       return;
     }
