@@ -64,6 +64,7 @@ async function excluirAnexo({ cirurgiaId, anexoId, tipoAnexo, usuario, gastoId =
   const anexo = snapshot.val();
   const movimento = await solicitarMoverArquivoParaExcluidos({
     publicId: anexo.public_id,
+    resourceType: anexo.resource_type,
     cirurgiaId,
     anexoId,
     tipoAnexo,
@@ -80,9 +81,8 @@ async function excluirAnexo({ cirurgiaId, anexoId, tipoAnexo, usuario, gastoId =
     excluidoPorNome: usuario?.nome || "",
     caminhoAnteriorCloudinary: anexo.caminhoAtualCloudinary || anexo.public_id,
     caminhoAtualCloudinary: movimento.newPublicId,
-    cloudinaryMovido: movimento.cloudinaryMovido !== false,
-    exclusaoSomenteLogica: Boolean(movimento.logicalOnly),
-    avisoExclusaoCloudinary: movimento.warning || "",
+    cloudinaryDeletado: Boolean(movimento.cloudinaryDeletado),
+    resultadoCloudinary: movimento.resultadoCloudinary || "",
     cirurgiaId,
     pacienteId: cirurgia.pacienteId || "",
     tipoAnexo,
@@ -97,7 +97,7 @@ async function excluirAnexo({ cirurgiaId, anexoId, tipoAnexo, usuario, gastoId =
     entidadeId: anexoId,
     usuarioId: usuario?.id,
     usuarioNome: usuario?.nome,
-    acao: "Exclusão lógica/movimentação de anexo",
+    acao: "Exclusão lógica e exclusão do arquivo no Cloudinary",
     dadosAntes: anexo,
     dadosDepois: dadosExclusao
   });

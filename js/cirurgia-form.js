@@ -10,6 +10,9 @@ let gastosCirurgicos = [];
 let movimentacoes = [];
 let anexosPendentesExclusao = [];
 let selects = {};
+let permitirSaidaSemAviso = false;
+let navegacaoHandler = null;
+let beforeUnloadHandler = null;
 
 const QUICK_CREATE_CONFIG = {
   pacientes: {
@@ -131,6 +134,7 @@ export async function initPage({ usuario, app }) {
   });
   document.getElementById("addMovimentacao").addEventListener("click", async () => adicionarMovimentacao(usuario));
   form.addEventListener("submit", (event) => salvarCirurgia(event, usuario, app));
+  configurarAvisoItensNaoAdicionados();
 }
 
 async function garantirMedicoDoUsuario(usuario) {
@@ -358,6 +362,93 @@ function restaurarEstadoFormularioCirurgia(estado) {
   renderMovimentacoes();
 }
 
+function configurarAvisoItensNaoAdicionados() {
+  window.surgiflowCirurgiaFormCleanup?.();
+  removerAvisoItensNaoAdicionados();
+  beforeUnloadHandler = (event) => {
+    if (permitirSaidaSemAviso || !temItensNaoAdicionados()) return;
+    event.preventDefault();
+    event.returnValue = "";
+  };
+  navegacaoHandler = (event) => {
+    if (permitirSaidaSemAviso || !temItensNaoAdicionados()) return;
+    const link = event.target.closest("a[href$='.html']");
+    if (!link || link.dataset.ignoreSpa === "true") return;
+    const mensagem = montarMensagemItensNaoAdicionados();
+    if (confirm(`${mensagem}\n\nDeseja sair mesmo assim?`)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+  document.addEventListener("click", navegacaoHandler, true);
+  window.surgiflowCirurgiaFormCleanup = removerAvisoItensNaoAdicionados;
+}
+
+function removerAvisoItensNaoAdicionados() {
+  if (beforeUnloadHandler) window.removeEventListener("beforeunload", beforeUnloadHandler);
+  if (navegacaoHandler) document.removeEventListener("click", navegacaoHandler, true);
+  beforeUnloadHandler = null;
+  navegacaoHandler = null;
+  if (window.surgiflowCirurgiaFormCleanup === removerAvisoItensNaoAdicionados) {
+    window.surgiflowCirurgiaFormCleanup = null;
+  }
+}
+
+function validarItensNaoAdicionadosAntesDeSalvar() {
+  if (!temItensNaoAdicionados()) return true;
+  alert(montarMensagemItensNaoAdicionados());
+  focarPrimeiroItemNaoAdicionado();
+  return false;
+}
+
+function temItensNaoAdicionados() {
+  return listarItensNaoAdicionados().length > 0;
+}
+
+function listarItensNaoAdicionados() {
+  const itens = [];
+  if (temMaterialNaoAdicionado()) itens.push("Materiais");
+  if (temGastoNaoAdicionado()) itens.push("Gastos cirúrgicos");
+  if (temMovimentacaoNaoAdicionada()) itens.push("Histórico de movimentações");
+  return itens;
+}
+
+function montarMensagemItensNaoAdicionados() {
+  const itens = listarItensNaoAdicionados();
+  return `Existem dados preenchidos e/ou anexos selecionados que ainda não foram adicionados nas listas:\n\n- ${itens.join("\n- ")}\n\nClique em Adicionar na respectiva seção antes de salvar ou sair.`;
+}
+
+function temMaterialNaoAdicionado() {
+  const materialId = document.getElementById("materialSelect")?.value || "";
+  const quantidade = document.getElementById("materialQuantidade")?.value || "";
+  const observacao = document.getElementById("materialObservacao")?.value.trim() || "";
+  return Boolean(materialId || observacao || (quantidade && quantidade !== "1"));
+}
+
+function temGastoNaoAdicionado() {
+  const descricao = document.getElementById("gastoDescricao")?.value.trim() || "";
+  const valor = document.getElementById("gastoValor")?.value || "";
+  const anexo = document.getElementById("gastoAnexo")?.files?.length > 0;
+  return Boolean(descricao || anexo || (valor && Number(String(valor).replace(",", ".")) !== 0));
+}
+
+function temMovimentacaoNaoAdicionada() {
+  const comentario = document.getElementById("movimentacaoComentario")?.value.trim() || "";
+  const dataDocumento = document.getElementById("movimentacaoDataDocumento")?.value || "";
+  const anexo = document.getElementById("movimentacaoAnexo")?.files?.length > 0;
+  return Boolean(comentario || dataDocumento || anexo);
+}
+
+function focarPrimeiroItemNaoAdicionado() {
+  const alvo = temMaterialNaoAdicionado()
+    ? document.getElementById("materialSelect")
+    : temGastoNaoAdicionado()
+      ? document.getElementById("gastoDescricao")
+      : document.getElementById("movimentacaoComentario");
+  alvo?.focus();
+  alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function adicionarMaterialSelecionado() {
   const select = document.getElementById("materialSelect");
   const material = selects.materiais[select.value];
@@ -379,7 +470,14 @@ function adicionarMaterialSelecionado() {
     quantidade,
     observacao: document.getElementById("materialObservacao").value.trim()
   });
+  limparCamposMaterial();
   renderMateriais();
+}
+
+function limparCamposMaterial() {
+  document.getElementById("materialSelect").value = "";
+  document.getElementById("materialQuantidade").value = "1";
+  document.getElementById("materialObservacao").value = "";
 }
 
 function renderMateriais() {
@@ -481,6 +579,7 @@ function renderAnexoMovimentacao(mov) {
 
 async function salvarCirurgia(event, usuario, app) {
   event.preventDefault();
+  if (!validarItensNaoAdicionadosAntesDeSalvar()) return;
   const form = event.currentTarget;
   const cirurgiaId = form.elements.id.value || gerarIdCirurgia();
   const anteriorSnap = await get(ref(db, `cirurgias/${cirurgiaId}`));
@@ -560,6 +659,8 @@ async function salvarCirurgia(event, usuario, app) {
     }
   }
   form.elements.id.value = cirurgiaId;
+  permitirSaidaSemAviso = true;
+  removerAvisoItensNaoAdicionados();
   alert("Cirurgia salva com sucesso.");
   app?.loadPage("pages/cirurgias.html");
 }

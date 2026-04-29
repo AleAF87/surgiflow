@@ -1,4 +1,4 @@
-import { moverArquivoCloudinaryParaExcluidos, uploadArquivoCloudinaryUnsigned } from "../cloudinary-config.js";
+import { deletarArquivoCloudinary, uploadArquivoCloudinaryUnsigned } from "../cloudinary-config.js";
 
 function limparNomeArquivo(nomeArquivo = "arquivo") {
   return nomeArquivo
@@ -35,13 +35,16 @@ export async function uploadArquivoCloudinary({ file, cirurgiaId, tipoAnexo, nom
   };
 }
 
-export async function solicitarMoverArquivoParaExcluidos({ publicId, cirurgiaId, anexoId, tipoAnexo, usuarioId, usuarioNome }) {
-  return moverArquivoCloudinaryParaExcluidos({
-    publicId,
-    cirurgiaId,
-    anexoId,
-    tipoAnexo,
-    usuarioId,
-    usuarioNome
-  });
+export async function solicitarMoverArquivoParaExcluidos({ publicId, resourceType }) {
+  const resultado = await deletarArquivoCloudinary(publicId, resourceType);
+  return {
+    success: true,
+    oldPublicId: publicId,
+    newPublicId: publicId,
+    newUrl: "",
+    movedAt: resultado.deletedAt,
+    cloudinaryDeletado: true,
+    resultadoCloudinary: resultado.result,
+    resourceType: resultado.resourceType
+  };
 }
